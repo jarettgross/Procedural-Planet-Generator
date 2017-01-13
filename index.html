@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+
+<meta charset="utf-8">
+
+<html>
+    <head>
+        <title>Procedural Planet Generation</title>
+        <link href="css/style.css" rel="stylesheet">
+        <link rel="stylesheet" href="css/nprogress.css"/>
+        <link href="https://fonts.googleapis.com/css?family=Lato:400,700" rel="stylesheet"> 
+    </head>
+
+    <body>
+        <script src="lib/nprogress.js"></script>
+        <script src="lib/three.min.js"></script>
+        <script src="lib/orbitControls.js"></script>
+        <script src="lib/noise.js"></script>
+        <script src="main.js"></script>
+
+        <a href="https://github.com/you"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/38ef81f8aca64bb9a64448d0d70f1308ef5341ab/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6461726b626c75655f3132313632312e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png"></a>
+
+        <div class="control-panel">
+            <div class="slider-container" id="noise-prop">
+                <div class="container-title">Noise Properties</div>
+                <label class="slider-label" for="seed">Seed</label>
+                <input type="number" step="any" id="seed" placeholder="random number">
+                <input type="checkbox" id="seed-random">
+
+                <label class="slider-label" for="lacunarity">Lacunarity</label>
+                <input class="range-slider" id="lacunarity" type="range" value="1.5" step="0.1" min="1" max="3">
+                <span class="slider-value" id="lacunarity-value">1.5</span>
+                <label class="slider-label" for="persistance">Persistance</label>
+                <input class="range-slider" id="persistance" type="range" value="0.5" step="0.1" min="0" max="1">
+                <span class="slider-value" id="persistance-value">0.5</span>
+                <label class="slider-label" for="octaves">Octaves</label>
+                <input class="range-slider" id="octaves" type="range" value="3" step="1" min="1" max="10">
+                <span class="slider-value" id="octaves-value">3</span>
+            </div>
+
+            <div class="slider-container" id="planet-prop">
+                <div class="container-title">Planet Properties</div>
+                <label class="slider-label" for="size">Size</label>
+                <input class="range-slider" id="size" type="range" value="200" min="1" max="500">
+                <span class="slider-value" id="size-value">200</span>
+                <label class="slider-label" for="tessellations">Tessellations</label>
+                <input class="range-slider" id="tessellations" type="range" value="150" min="0" max="500">
+                <span class="slider-value" id="tessellations-value">150</span>
+                <label class="slider-label" for="min-height">Min Height</label>
+                <input class="range-slider" id="min-height" type="range" value="1.0" step="0.1" min="0.1" max="3">
+                <span class="slider-value" id="min-height-value">1.0</span>
+                <label class="slider-label" for="max-height">Max Height</label>
+                <input class="range-slider" id="max-height" type="range" value="1.5" step="0.1" min="0.1" max="3">
+                <span class="slider-value" id="max-height-value">1.5</span>
+            </div>
+
+            <div class="switch-field">
+                <div class="container-title">Planet Type</div>
+                <input type="radio" name="type" id="triangles" value="NORMAL" checked />
+                <label for="triangles">Triangles</label>
+                <input type="radio" name="type" id="hexagons" value="TILE-HEIGHT" />
+                <label for="hexagons">Hexagons</label>
+                <br>
+                <input type="radio" name="type" id="flat-hexagons" value="TILE-FLAT" />
+                <label for="flat-hexagons">Flat Hexagons</label>
+                <input type="radio" name="type" id="pop-out-hexagons" value="TILE-FLAT-HEIGHT" />
+                <label for="pop-out-hexagons">Pop-out Hexagons</label>
+            </div>
+
+            <div id="generate">Generate</div>
+
+            <div id="controls-note">Arrow keys rotate planet</div>
+            <script src="userInterface.js"></script>
+        </div>
+    </body>
+</html>
