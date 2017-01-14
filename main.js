@@ -122,6 +122,15 @@ function render() {
     if (isUp)    planet.rotation.x -= 0.015;
     if (isDown)  planet.rotation.x += 0.015;
 
+    if (isPlus) {
+        camera.fov -= 0.25;
+        camera.updateProjectionMatrix();
+    }
+    if (isMinus) {
+        camera.fov += 0.25;
+        camera.updateProjectionMatrix();
+    }
+
     renderer.render(scene, camera);
 }
 
@@ -138,6 +147,10 @@ function initControls() {
             isRight = true;
         } else if (e.keyCode === 40) {
             isDown = true;
+        } else if (e.keyCode === 61) {
+            isPlus =  true;
+        } else if (e.keyCode === 173) {
+            isMinus = true;
         }
     }
 
@@ -150,6 +163,10 @@ function initControls() {
             isRight = false;
         } else if (e.keyCode === 40) {
             isDown = false;
+        } else if (e.keyCode === 61) {
+            isPlus =  false;
+        } else if (e.keyCode === 173) {
+            isMinus = false;
         }
     }
 
