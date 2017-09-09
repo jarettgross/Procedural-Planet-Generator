@@ -1,51 +1,47 @@
 //==================
-//INITIALIZE
+// INITIALIZE
 //==================
 
 init();
 
-var type = "NORMAL";
-var planetSize = 200;
-var tessellation = 150;
-var minHeight = 1.0;
-var maxHeight = 1.5;
-var seed = Math.random();
-var lacunarity = 1.5;
-var persistance = 0.5;
-var octaves = 2;
+var type         = "TILE-FLAT-HEIGHT";
+var planetSize   = 200;
+var tessellation = 4;
+var minHeight    = 1.0;
+var maxHeight    = 1.5;
+var lacunarity   = 1.5;
+var persistance  = 0.5;
+var octaves      = 2;
+var seed         = Math.random();
 
-//For use without web worker
+// For use without web worker
 //initNoise(Math.random());
 //createScene(type, planetSize, tessellation, minHeight, maxHeight);
 
-//For use with web worker
+// For use with web worker
 beginWorker(type, planetSize, tessellation, minHeight, maxHeight, seed, lacunarity, persistance, octaves);
 
 //==================
-//SCENE CREATION
+// SCENE CREATION
 //==================
 
-//WITHOUT WEB WORKER
+// WITHOUT WEB WORKER
 function createScene(type = "TILE-FLAT-HEIGHT", planetSize = 200, tessellation = 4, minHeight = 1.0, maxHeight = 1.5) {
 
-    //Type, Size, Tessellation, MinHeight, MaxHeight
-    //Types: NORMAL, TILE-FLAT, TILE-HEIGHT, TILE-FLAT-HEIGHT
+    // Types: NORMAL, TILE-FLAT, TILE-HEIGHT, TILE-FLAT-HEIGHT
     var geometry = generatePlanet(type, planetSize, tessellation, minHeight, maxHeight);
-
     planet = new THREE.Mesh(geometry, pickMaterial());
-
     scene.add(planet);
 }
 
-//WITH WEB WORKER
-function beginWorker(type = "TILE-FLAT-HEIGHT", planetSize = 200, tessellation = 4, minHeight = 1.0, maxHeight = 1.5, 
+// WITH WEB WORKER
+function beginWorker(type = "TILE-FLAT-HEIGHT", planetSize = 200, tessellation = 4, minHeight = 1.0, maxHeight = 1.5,
                      seed = Math.random(), lacunarity = 1.9, persistance = 0.5, octaves = 5) {
 
     var worker = new Worker("generatePlanet.js");
-    
     NProgress.start();
 
-    //Type options: NORMAL, TILE-NORMAL, TILE-HEIGHT, TILE-FLAT-HEIGHT
+    // Type options: NORMAL, TILE-NORMAL, TILE-HEIGHT, TILE-FLAT-HEIGHT
     worker.postMessage({
         type:         type,
         planetSize:   planetSize,
@@ -59,11 +55,10 @@ function beginWorker(type = "TILE-FLAT-HEIGHT", planetSize = 200, tessellation =
     });
 
     worker.onmessage = function(e) {
-
         if (e.data.ready) {
             var geometry = e.data.geometry;
 
-            //Need to make new geometry due to web worker issues with Three geometry
+            // Need to make new geometry due to web worker issues with Three geometry
             var g = new THREE.Geometry();
             g.vertices = geometry.vertices;
             g.faces = geometry.faces;
@@ -72,7 +67,6 @@ function beginWorker(type = "TILE-FLAT-HEIGHT", planetSize = 200, tessellation =
             scene.add(planet);
 
             worker.terminate();
-
             NProgress.done();
         } else {
             NProgress.inc(1/30);
@@ -81,21 +75,21 @@ function beginWorker(type = "TILE-FLAT-HEIGHT", planetSize = 200, tessellation =
 }
 
 //=============================
-//GRAPHICS FUNCTIONS & CONTROLS
+// GRAPHICS FUNCTIONS & CONTROLS
 //=============================
 
 var camera, scene, renderer, controls, planet;
 
 function init() {
-    //SCENE
+    // SCENE
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0xffffff);
 
-    //CAMERA
+    // CAMERA
     camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 20000);
     camera.position.z = 800;
 
-    //LIGHTS
+    // LIGHTS
     // ambientLight = new THREE.AmbientLight(0xffffff);
     // scene.add(ambientLight);
 
@@ -103,14 +97,13 @@ function init() {
     pointLight.position.set(80, 50, 500);
     scene.add(pointLight);
 
-    //RENDERER
+    // RENDERER
     renderer = new THREE.WebGLRenderer();
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
-
     render();
 
-    //CONTROLS
+    // CONTROLS
     initControls();
 }
 
@@ -134,10 +127,10 @@ function render() {
     renderer.render(scene, camera);
 }
 
-//Set up controls for rotating planet
-var isLeft, isUp, isRight, isDown;
+// Set up controls for rotating planet
+var isLeft, isUp, isRight, isDown, isPlus, isMinus;
 function initControls() {
-    //Keyboard controls
+    // Keyboard controls
     window.onkeydown = function(e) {
         if (e.keyCode === 37) {
             isLeft = true;
@@ -170,7 +163,7 @@ function initControls() {
         }
     }
 
-    //Mouse controls
+    // Mouse controls
     //controls = new THREE.OrbitControls(camera, renderer.domElement);
 }
 
@@ -179,10 +172,10 @@ function clearScene() {
 }
 
 //==================
-//HELPER FUNCTIONS
+// HELPER FUNCTIONS
 //==================
 
-//Initialize noise parameters - seed, lacunarity, persistance, octaves
+// Initialize noise parameters - seed, lacunarity, persistance, octaves
 var lacunarity, persistance, octaves;
 
 function initNoise(seed, l = 1.9, p = 0.5, o = 5) {
@@ -192,7 +185,7 @@ function initNoise(seed, l = 1.9, p = 0.5, o = 5) {
     octaves = o;
 }
 
-//Set the material of the planet mesh
+// Set the material of the planet mesh
 function pickMaterial(type = "PHONG", shininess = 0, shading = THREE.FlatShading) {
     if (type === "PHONG") {
         var material = new THREE.MeshPhongMaterial({

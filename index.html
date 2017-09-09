@@ -7,7 +7,7 @@
         <title>Procedural Planet Generation</title>
         <link href="css/style.css" rel="stylesheet">
         <link rel="stylesheet" href="css/nprogress.css"/>
-        <link href="https://fonts.googleapis.com/css?family=Lato:400,700" rel="stylesheet"> 
+        <link href="https://fonts.googleapis.com/css?family=Lato:400,700" rel="stylesheet">
     </head>
 
     <body>
@@ -43,8 +43,8 @@
                 <input class="range-slider" id="size" type="range" value="200" min="1" max="500">
                 <span class="slider-value" id="size-value">200</span>
                 <label class="slider-label" for="tessellations">Tessellations</label>
-                <input class="range-slider" id="tessellations" type="range" value="150" min="0" max="500">
-                <span class="slider-value" id="tessellations-value">150</span>
+                <input class="range-slider" id="tessellations" type="range" value="4" min="2" max="500">
+                <span class="slider-value" id="tessellations-value">4</span>
                 <label class="slider-label" for="min-height">Min Height</label>
                 <input class="range-slider" id="min-height" type="range" value="1.0" step="0.1" min="0.1" max="3">
                 <span class="slider-value" id="min-height-value">1.0</span>
@@ -55,14 +55,14 @@
 
             <div class="switch-field">
                 <div class="container-title">Planet Type</div>
-                <input type="radio" name="type" id="triangles" value="NORMAL" checked />
+                <input type="radio" name="type" id="triangles" value="NORMAL" />
                 <label for="triangles">Triangles</label>
                 <input type="radio" name="type" id="hexagons" value="TILE-HEIGHT" />
                 <label for="hexagons">Hexagons</label>
                 <br>
                 <input type="radio" name="type" id="flat-hexagons" value="TILE-FLAT" />
                 <label for="flat-hexagons">Flat Hexagons</label>
-                <input type="radio" name="type" id="pop-out-hexagons" value="TILE-FLAT-HEIGHT" />
+                <input type="radio" name="type" id="pop-out-hexagons" value="TILE-FLAT-HEIGHT" checked />
                 <label for="pop-out-hexagons">Pop-out Hexagons</label>
             </div>
 

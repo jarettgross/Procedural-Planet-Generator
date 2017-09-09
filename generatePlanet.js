@@ -2,12 +2,17 @@
 //WEB WORKER
 //=====================
 
-importScripts("lib/three.min.js", "lib/noise.js", "generateQuadsphere.js", "generateDualPolyhedron.js");
+importScripts(
+    "lib/three.min.js",
+    "lib/noise.js",
+    "generateQuadsphere.js",
+    "generateIcosahedron.js",
+    "generateDualPolyhedron.js"
+);
 
 var lacunarity, persistance, octaves;
 
 onmessage = function(e) {
-
     noise.seed(e.data.seed);
     lacunarity = e.data.lacunarity;
     persistance = e.data.persistance;
@@ -20,77 +25,66 @@ onmessage = function(e) {
 };
 
 //=====================
-//PLANET FUNCTIONS
+// PLANET FUNCTIONS
 //=====================
 
 function generatePlanet(type = "NORMAL", planetSize = 200, tessellation = 60, minHeight = 1.0, maxHeight = 1.2) {
-    if (type === "NORMAL") {
-        return generateNormalPlanet(planetSize, tessellation, minHeight, maxHeight);
-    } else {
-        return generateTilePlanet(type, planetSize, tessellation, minHeight, maxHeight);
-    }
+    return (type === "NORMAL")
+        ? generateNormalPlanet(planetSize, tessellation, minHeight, maxHeight)
+        : generateTilePlanet(type, planetSize, tessellation, minHeight, maxHeight);
 }
 
-//Generate a planet using a subdivided icosahedron altered to create hexagonal/pentagonal tiles
+// Generate a planet using a subdivided icosahedron altered to create hexagonal/pentagonal tiles
 function generateTilePlanet(type, planetSize, subdivisions, minHeight, maxHeight) {
     var subdivisions = Math.min(subdivisions, 6);
-
     var planet = generateDualPolyhedron(planetSize, subdivisions);
 
-    if (type === "TILE-FLAT") {
-        return generateNormalTilePlanet(planet, planetSize, minHeight, maxHeight);
-    } else if (type === "TILE-HEIGHT") {
-        return generateHeightTilePlanet(planet, planetSize, minHeight, maxHeight);
-    } else if (type === "TILE-FLAT-HEIGHT") {
-        return generateFlatHeightTilePlanet(planet, planetSize, minHeight, maxHeight);
-    } else {
-        return new THREE.Object3D();
+    switch (type) {
+        case "TILE-FLAT":        return generateNormalTilePlanet(planet, planetSize, minHeight, maxHeight);
+        case "TILE-HEIGHT":      return generateHeightTilePlanet(planet, planetSize, minHeight, maxHeight);
+        case "TILE-FLAT-HEIGHT": return generateFlatHeightTilePlanet(planet, planetSize, minHeight, maxHeight);
+        default:                 return new THREE.Object3D();
     }
 }
 
 //=====================
-//QUADSPHERE PLANET
+// QUADSPHERE PLANET
 //=====================
 
 function generateNormalPlanet(planetSize, tessellation, minHeight, maxHeight) {
     var faceIndices = ['a', 'b', 'c'];
-
     var planetGeometry = generateQuadsphere(planetSize, tessellation);
 
-    //Find min, max values of noise to use for value mapping
+    // Find min, max values of noise to use for value mapping
     var values = getMinMaxValues(planetGeometry.vertices, planetSize);
 
-    //Scale vertices based on noise
+    // Scale vertices based on noise
     for (var i = 0; i < planetGeometry.vertices.length; i++) {
-        //Progress bar update
+        // Progress bar update
         if (i !== 0 && i % (Math.floor(planetGeometry.vertices.length * 0.1)) === 0) postMessage({increment: i});
 
         var vertex = planetGeometry.vertices[i];
-
         var height = getNoiseValue(vertex, planetSize/2).map(values.minValue, values.maxValue, minHeight, maxHeight);
         vertex.multiplyScalar(height);
 
-        //Adjust height if at water level. This keeps the water vertices level with each other
+        // Adjust height if at water level. This keeps the water vertices level with each other
         var waterHeight = terrainType.darkGrass.threshold * (maxHeight - minHeight) + minHeight - .0001;
         if (height < waterHeight) {
             vertex.multiplyScalar(waterHeight / height);
         }
     }
 
-    //Change vertex height based on noise and give colors to mesh faces based on largest vertex length
+    // Change vertex height based on noise and give colors to mesh faces based on largest vertex length
     for (var i = 0; i < planetGeometry.faces.length; i++) {
-        //Progress bar update
+        // Progress bar update
         if (i !== 0 && i % (Math.floor(planetGeometry.faces.length * 0.1)) === 0) postMessage({increment: i});
 
         var curValue = 0;
         var face = planetGeometry.faces[i];
-
         for (var j = 0; j < faceIndices.length; j++) {
             curValue = Math.max(curValue, planetGeometry.vertices[face[faceIndices[j]]].length() / planetSize);
         }
-
         var heightPercent = (curValue - minHeight) / (maxHeight - minHeight);
-
         setFaceColor(heightPercent, face);
     }
 
@@ -98,41 +92,37 @@ function generateNormalPlanet(planetSize, tessellation, minHeight, maxHeight) {
 }
 
 //=====================
-//TILE PLANETS
+// TILE PLANETS
 //=====================
 
-//Regular sphere with hexagonal/pentagonal tiles
+// Regular sphere with hexagonal/pentagonal tiles
 function generateNormalTilePlanet(planet, planetSize, minHeight, maxHeight) {
     var planetGeometry = planet.geometry;
-
     var faceIndices = ['a', 'b', 'c'];
     var vertexHeights = [];
 
-    //Find min, max values of noise to use for value mapping
+    // Find min, max values of noise to use for value mapping
     var values = getMinMaxValues(planetGeometry.vertices, planetSize);
 
-    //Scale vertices based on noise
+    // Scale vertices based on noise
     for (var i = 0; i < planetGeometry.vertices.length; i++) {
-
-        //Progress bar update
+        // Progress bar update
         if (i !== 0 && i % (Math.floor(planetGeometry.vertices.length * 0.1)) === 0) postMessage({increment: i});
 
         var vertex = planetGeometry.vertices[i];
-
         var height = getNoiseValue(vertex, planetSize/2).map(values.minValue, values.maxValue, minHeight, maxHeight);
         vertexHeights.push(height);
     }
 
-    //Give colors to mesh faces based on largest noise value
+    // Give colors to mesh faces based on largest noise value
     for (var i = 0; i < planet.polygonGroups.length; i++) {
-
-        //Progress bar update
+        // Progress bar update
         if (i !== 0 && i % (Math.floor(planet.polygonGroups.length * 0.1)) === 0) postMessage({increment: i});
 
         var faces = planet.polygonGroups[i].faces;
         var average = 0;
 
-        //For each face of polygon
+        // For each face of polygon
         for (var j = 0; j < faces.length; j++) {
             var faceIndex = faces[j];
             for (var k = 0; k < faceIndices.length; k++) {
@@ -141,9 +131,7 @@ function generateNormalTilePlanet(planet, planetSize, minHeight, maxHeight) {
         }
 
         average /= faceIndices.length * faces.length;
-
         var heightPercent = (average - minHeight) / (maxHeight - minHeight);
-
         for (var j = 0; j < faces.length; j++) {
             faceIndex = faces[j];
             setFaceColor(heightPercent, planetGeometry.faces[faceIndex]);
@@ -153,43 +141,39 @@ function generateNormalTilePlanet(planet, planetSize, minHeight, maxHeight) {
     return planetGeometry;
 }
 
-//Sphere with vertices of hexagonal/pentagonal tiles shifted based on noise
+// Sphere with vertices of hexagonal/pentagonal tiles shifted based on noise
 function generateHeightTilePlanet(planet, planetSize, minHeight, maxHeight) {
     var planetGeometry = planet.geometry;
-
     var faceIndices = ['a', 'b', 'c'];
 
-    //Find min, max values of noise to use for value mapping
+    // Find min, max values of noise to use for value mapping
     var values = getMinMaxValues(planetGeometry.vertices, planetSize);
 
-    //Scale vertices based on noise
+    // Scale vertices based on noise
     for (var i = 0; i < planetGeometry.vertices.length; i++) {
-
-        //Progress bar update
+        // Progress bar update
         if (i !== 0 && i % (Math.floor(planetGeometry.vertices.length * 0.1)) === 0) postMessage({increment: i});
 
         var vertex = planetGeometry.vertices[i];
-
         var height = getNoiseValue(vertex, planetSize/2).map(values.minValue, values.maxValue, minHeight, maxHeight);
         vertex.multiplyScalar(height);
 
-        //Adjust height if at water level. This keeps the water vertices level with each other
+        // Adjust height if at water level. This keeps the water vertices level with each other
         var waterHeight = terrainType.darkGrass.threshold * (maxHeight - minHeight) + minHeight - .0001;
         if (height < waterHeight) {
             vertex.multiplyScalar(waterHeight / height);
         }
     }
 
-    //Give colors to mesh faces based on largest vertex length
+    // Give colors to mesh faces based on largest vertex length
     for (var i = 0; i < planet.polygonGroups.length; i++) {
-
-        //Progress bar update
+        // Progress bar update
         if (i !== 0 && i % (Math.floor(planet.polygonGroups.length * 0.1)) === 0) postMessage({increment: i});
 
         var faces = planet.polygonGroups[i].faces;
         var average = 0;
 
-        //For each face of polygon
+        // For each face of polygon
         for (var j = 0; j < faces.length; j++) {
             var faceIndex = faces[j];
             for (var k = 0; k < faceIndices.length; k++) {
@@ -198,9 +182,7 @@ function generateHeightTilePlanet(planet, planetSize, minHeight, maxHeight) {
         }
 
         average /= faceIndices.length * faces.length;
-
         var heightPercent = (average - minHeight) / (maxHeight - minHeight);
-
         for (var j = 0; j < faces.length; j++) {
             faceIndex = faces[j];
             setFaceColor(heightPercent, planetGeometry.faces[faceIndex]);
@@ -210,40 +192,35 @@ function generateHeightTilePlanet(planet, planetSize, minHeight, maxHeight) {
     return planetGeometry;
 }
 
-//Sphere with entire hexagonal/pentagonal tiles "shifted" based on noise
+// Sphere with entire hexagonal/pentagonal tiles "shifted" based on noise
 function generateFlatHeightTilePlanet(planet, planetSize, minHeight, maxHeight) {
     var planetGeometry = planet.geometry;
-
     var geometry = new THREE.Geometry();
-
     var faceIndices = ['a', 'b', 'c'];
     var vertexHeights = [];
 
-    //Find min, max values of noise to use for value mapping
+    // Find min, max values of noise to use for value mapping
     var values = getMinMaxValues(planetGeometry.vertices, planetSize);
 
-    //Scale vertices based on noise
+    // Scale vertices based on noise
     for (var i = 0; i < planetGeometry.vertices.length; i++) {
-
-        //Progress bar update
+        // Progress bar update
         if (i !== 0 && i % (Math.floor(planetGeometry.vertices.length * 0.1)) === 0) postMessage({increment: i});
 
         var vertex = planetGeometry.vertices[i];
-
         var height = getNoiseValue(vertex, planetSize/2).map(values.minValue, values.maxValue, minHeight, maxHeight);
         vertexHeights.push(height);
     }
 
-    //Give colors to mesh faces based on largest noise value
+    // Give colors to mesh faces based on largest noise value
     for (var i = 0; i < planet.polygonGroups.length; i++) {
-
-        //Progress bar update
+        // Progress bar update
         if (i !== 0 && i % (Math.floor(planet.polygonGroups.length * 0.1)) === 0) postMessage({increment: i});
 
         var faces = planet.polygonGroups[i].faces;
         var average = 0;
 
-        //For each face of polygon
+        // For each face of polygon
         for (var j = 0; j < faces.length; j++) {
             var faceIndex = faces[j];
             for (var k = 0; k < faceIndices.length; k++) {
@@ -252,10 +229,9 @@ function generateFlatHeightTilePlanet(planet, planetSize, minHeight, maxHeight) 
         }
 
         average /= faceIndices.length * faces.length;
-
         var heightPercent = (average - minHeight) / (maxHeight - minHeight);
 
-        //Create polygon meshes for each hexagonal/pentagonal tile
+        // Create polygon meshes for each hexagonal/pentagonal tile
         var polygonGeometry = createPolygonMesh(planetGeometry, planet.polygonGroups[i].vertices, average);
         for (var j = 0; j < polygonGeometry.faces.length; j++) {
             setFaceColor(heightPercent, polygonGeometry.faces[j]);
@@ -267,10 +243,10 @@ function generateFlatHeightTilePlanet(planet, planetSize, minHeight, maxHeight) 
 }
 
 //==================
-//HELPER FUNCTIONS
+// HELPER FUNCTIONS
 //==================
 
-//Gets value of 3D simplex noise at a vertex
+// Gets value of 3D simplex noise at a vertex
 function getNoiseValue(vertex, scale) {
     var amplitude = 1;
     var frequency = 1;
@@ -283,7 +259,7 @@ function getNoiseValue(vertex, scale) {
     return value;
 }
 
-//Returns min, max values generated by noise
+// Returns min, max values generated by noise
 function getMinMaxValues(vertices, planetSize) {
     var maxValue = Number.MIN_VALUE;
     var minValue = Number.MAX_VALUE;
@@ -296,7 +272,7 @@ function getMinMaxValues(vertices, planetSize) {
     return { minValue, maxValue };
 }
 
-//Set color of mesh face based on height of face compared to the face with max height
+// Set color of mesh face based on height of face compared to the face with max height
 var terrainType = {
     mountainTop:  { threshold: 0.87, color: 0xC8C8C8 },
     darkMountain: { threshold: 0.85, color: 0x735B5B },
@@ -322,40 +298,39 @@ function setFaceColor(heightPercent, face) {
     }
 }
 
-//Create mesh from polygon for flat-height tile terrain
+// Create mesh from polygon for flat-height tile terrain
 function createPolygonMesh(planetGeometry, polygon, height) {
     var geometry = new THREE.Geometry();
-
     var vertices = planetGeometry.vertices;
 
-    //Top vertices of cylinder
+    // Top vertices of cylinder
     for (var i = 0; i < polygon.length; i++) {
         var vertexIndex = polygon[i];
         geometry.vertices.push(vertices[vertexIndex].clone().multiplyScalar(height));
     }
 
-    //Bottom vertices of cylinder
+    // Bottom vertices of cylinder
     for (var i = 0; i < polygon.length; i++) {
         var vertexIndex = polygon[i];
         geometry.vertices.push(vertices[vertexIndex].clone());
     }
 
     if (polygon.length === 6) {
-        //Top faces
+        // Top faces
         geometry.faces.push(new THREE.Face3(0,  1,  2));
         geometry.faces.push(new THREE.Face3(0,  2,  3));
         geometry.faces.push(new THREE.Face3(0,  3,  4));
         geometry.faces.push(new THREE.Face3(0,  4,  5));
         geometry.faces.push(new THREE.Face3(0,  5,  1));
 
-        //Bottom faces
+        // Bottom faces
         geometry.faces.push(new THREE.Face3(6,  7,  8));
         geometry.faces.push(new THREE.Face3(6,  8,  9));
         geometry.faces.push(new THREE.Face3(6,  9, 10));
         geometry.faces.push(new THREE.Face3(6, 10, 11));
         geometry.faces.push(new THREE.Face3(6, 11,  7));
 
-        //Body faces (one tessellation)
+        // Body faces (one tessellation)
         geometry.faces.push(new THREE.Face3(1,  7,  2));
         geometry.faces.push(new THREE.Face3(2,  7,  8));
         geometry.faces.push(new THREE.Face3(2,  8,  3));
@@ -367,7 +342,7 @@ function createPolygonMesh(planetGeometry, polygon, height) {
         geometry.faces.push(new THREE.Face3(5, 11,  1));
         geometry.faces.push(new THREE.Face3(1, 11,  7));
     } else {
-        //Top faces
+        // Top faces
         geometry.faces.push(new THREE.Face3(0,  1,  2));
         geometry.faces.push(new THREE.Face3(0,  2,  3));
         geometry.faces.push(new THREE.Face3(0,  3,  4));
@@ -375,7 +350,7 @@ function createPolygonMesh(planetGeometry, polygon, height) {
         geometry.faces.push(new THREE.Face3(0,  5,  6));
         geometry.faces.push(new THREE.Face3(0,  6,  1));
 
-        //Bottom faces
+        // Bottom faces
         geometry.faces.push(new THREE.Face3(7,  8,  9));
         geometry.faces.push(new THREE.Face3(7,  9, 10));
         geometry.faces.push(new THREE.Face3(7, 10, 11));
@@ -383,7 +358,7 @@ function createPolygonMesh(planetGeometry, polygon, height) {
         geometry.faces.push(new THREE.Face3(7, 12, 13));
         geometry.faces.push(new THREE.Face3(7, 13,  8));
 
-        //Body faces (one tessellation)
+        // Body faces (one tessellation)
         geometry.faces.push(new THREE.Face3(1,  8,  2));
         geometry.faces.push(new THREE.Face3(2,  8,  9));
         geometry.faces.push(new THREE.Face3(2,  9,  3));
@@ -401,7 +376,7 @@ function createPolygonMesh(planetGeometry, polygon, height) {
     return geometry;
 }
 
-//Map values (in_min, in_max) to (out_min, out_max)
+// Map values (in_min, in_max) to (out_min, out_max)
 Number.prototype.map = function(in_min, in_max, out_min, out_max) {
-  return (this - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+    return (this - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
